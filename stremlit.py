@@ -3,6 +3,7 @@ from wordcloud import WordCloud, STOPWORDS
 import PyPDF2
 import docx
 import numpy as np
+import PyPDF2
 from PIL import Image
 
 def extract_text_from_txt(file_path):
@@ -50,4 +51,5 @@ docx_text = extract_text_from_docx("sample.docx")
 all_text = txt_text + " " + pdf_text + " " + docx_text
 
 # Example: "circle.png" should be a black circle on white background
+
 generate_wordcloud(all_text, "circle.png", "circle_wordcloud.png")
