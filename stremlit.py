@@ -1,55 +1,51 @@
+import streamlit as st
+from wordcloud import WordCloud
 import matplotlib.pyplot as plt
-from wordcloud import WordCloud, STOPWORDS
-import PyPDF2
+import fitz
 import docx
-import numpy as np
-import PyPDF2
-from PIL import Image
 
-def extract_text_from_txt(file_path):
-    with open(file_path, "r", encoding="utf-8") as f:
-        return f.read()
+st.markdown(
+    """
+    <div style="background-color:#4CAF50;padding:12px;border-radius:10px;">
+        <h2 style="color:white;text-align:center;">Dhora's App - Word Cloud Generator</h2>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
-def extract_text_from_pdf(file_path):
-    text = ""
-    with open(file_path, "rb") as f:
-        reader = PyPDF2.PdfReader(f)
-        for page in reader.pages:
-            if page.extract_text():
-                text += page.extract_text() + " "
-    return text
+uploaded_file = st.file_uploader("Upload a PDF, TXT, or DOCX file", type=["pdf", "txt", "docx"])
 
-def extract_text_from_docx(file_path):
-    doc = docx.Document(file_path)
-    text = " ".join([para.text for para in doc.paragraphs if para.text.strip() != ""])
-    return text
+text = ""
 
-def generate_wordcloud(text, mask_image, output_file="shape_wordcloud.png"):
-    mask = np.array(Image.open(mask_image))
-    stopwords = set(STOPWORDS)
-    wc = WordCloud(
-        width=900,
-        height=500,
-        background_color="white",
-        stopwords=stopwords,
-        colormap="viridis",
-        mask=mask,
-        contour_color="black",
-        contour_width=2,
-        max_words=250,
-        max_font_size=150
-    ).generate(text)
-    wc.to_file(output_file)
-    plt.figure(figsize=(10, 10))
-    plt.imshow(wc, interpolation="bilinear")
-    plt.axis("off")
-    plt.show()
+if uploaded_file is not None:
+    if uploaded_file.type == "application/pdf":
+        pdf = fitz.open(stream=uploaded_file.read(), filetype="pdf")
+        for page in pdf:
+            text += page.get_text()
+    elif uploaded_file.type == "text/plain":
+        text = uploaded_file.read().decode("utf-8")
+    elif uploaded_file.type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+        doc = docx.Document(uploaded_file)
+        for para in doc.paragraphs:
+            text += para.text + "\n"
 
-txt_text = extract_text_from_txt("sample.txt")
-pdf_text = extract_text_from_pdf("sample.pdf")
-docx_text = extract_text_from_docx("sample.docx")
-all_text = txt_text + " " + pdf_text + " " + docx_text
+if not text:
+    text = st.text_area("Or you can  enter your text here:", 
+        "Streamlit makes it easy to create apps for data science and machine learning."
+    )
 
-# Example: "circle.png" should be a black circle on white background
+max_words = st.slider("Max Words", 10, 200, 100)
+background_color = st.color_picker("Pick a background color", "#ffffff")
 
-generate_wordcloud(all_text, "circle.png", "circle_wordcloud.png")
+if st.button("Generate Word Cloud"):
+    if text.strip() == "":
+        st.warning("Please provide text (upload a file or type manually).")
+    else:
+        wc = WordCloud(width=800, height=400,
+                       max_words=max_words,
+                       background_color=background_color).generate(text)
+
+        fig, ax = plt.subplots(figsize=(10, 5))
+        ax.imshow(wc, interpolation="bilinear")
+        ax.axis("off")
+        st.pyplot(fig)
